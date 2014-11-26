@@ -1,7 +1,7 @@
 import os
 import varial.tools
-varial.tools.mk_plotter_chain().run()
+os.system('rm -r T_th')
+varial.tools.mk_plotter_chain(name='T_th').run()
 varial.tools.WebCreator().run()
 os.system('rm -r ~/www/T_th')
-os.system('mv RootFilePlots/fileservice/fileservice ~/www/T_th')
-os.system('rm -r RootFilePlots')
+os.system('cp -r T_th/fileservice/fileservice ~/www/T_th')
