@@ -13,43 +13,55 @@ fname_Tj_th = '/nfs/dust/cms/user/ottjoc/gc-output/PHYS14v0/' \
 gp_coll_type = 'vector<reco::GenParticle>'
 gp_collection = 'prunedGenParticles'
 
-fs = varial.analysis.fileservice()
-fs.makeTH2D(
+fs_tp = varial.analysis.fileservice('tPrime')
+fs_fw = varial.analysis.fileservice('forwardParton')
+fs_h  = varial.analysis.fileservice('higgs')
+fs_t  = varial.analysis.fileservice('top')
+fs_tp.makeTH2D(
     'tPrimeKinematic',
     ";T' p_{T};T' #eta",
     100, 0, 1000,
     100, 0., 10.
 )
-fs.makeTH2D(
+fs_tp.makeTH1D(
+    'tPrimeNumberOfDaughters',
+    ";NumberOfDaughters;",
+    10, .5, 10.5
+)
+tPrimeDecayChans = {}
+tPrimeMomPdgId = {}
+fs_fw.makeTH2D(
     'fwJetKinematic',
     ';forward parton p_{T};forward parton #eta',
     100, 0, 1000,
     100, 0., 10.
 )
-fs.makeTH2D(
+fwJetPdgId = {}
+fs_h.makeTH2D(
     'hKinematic',
     ';H p_{T};H #eta',
     100, 0, 1000,
     100, 0., 10.
 )
 hDecayChans = {}
-fs.makeTH1D(
+fs_h.makeTH1D(
     'bbDeltaR',
     ';#DeltaR(p,p) from H->pp;events',
     100, 0., 5.
 )
-fs.makeTH2D(
+fs_t.makeTH2D(
     'leptonKinematic',
     ';lepton p_{T};lepton #eta',
     100, 0, 1000,
     100, 0., 10.
 )
-fs.makeTH2D(
+fs_t.makeTH2D(
     'topKinematic',
     ';top quark p_{T};top quark #eta',
     100, 0, 1000,
     100, 0., 10.
 )
+
 
 def dict_histo_fill(d, v):
     if v in d:
@@ -113,25 +125,36 @@ for evt_no, event in enumerate(events):
                 break
 
     # fill histograms
-    fs.tPrimeKinematic.Fill(tPrime.pt(), abs(tPrime.eta()))
-    fs.fwJetKinematic .Fill(fwJet .pt(), abs(fwJet .eta()))
-    fs.topKinematic   .Fill(top   .pt(), abs(top   .eta()))
-    fs.hKinematic     .Fill(higg  .pt(), abs(higg  .eta()))
-    dict_histo_fill(hDecayChans, higg.daughter(0).pdgId())
-    dict_histo_fill(hDecayChans, higg.daughter(1).pdgId())
+    fs_tp.tPrimeKinematic.Fill(tPrime.pt(), abs(tPrime.eta()))
+    fs_fw.fwJetKinematic .Fill(fwJet .pt(), abs(fwJet .eta()))
+    fs_t.topKinematic   .Fill(top   .pt(), abs(top   .eta()))
+    fs_h.hKinematic     .Fill(higg  .pt(), abs(higg  .eta()))
+
+    fs_tp.tPrimeNumberOfDaughters.Fill(tPrime.numberOfDaughters())
+
+    # fill branchings
+    dict_histo_fill(fwJetPdgId, abs(fwJet.pdgId()))
+    for i in xrange(higg.numberOfDaughters()):
+        dict_histo_fill(hDecayChans, abs(higg.daughter(i).pdgId()))
+    for i in xrange(tPrime.numberOfDaughters()):
+        dict_histo_fill(tPrimeDecayChans, abs(tPrime.daughter(i).pdgId()))
+    for i in xrange(tPrime.numberOfMothers()):
+        dict_histo_fill(tPrimeMomPdgId, abs(tPrime.mother(i).pdgId()))
 
     if lepton:
-        fs.leptonKinematic.Fill(lepton.pt(), lepton.eta())
+        fs_t.leptonKinematic.Fill(lepton.pt(), lepton.eta())
 
-    fs.bbDeltaR.Fill(deltaR_vec_to_vec(higg.daughter(0),
-                                       higg.daughter(1)))
+    fs_h.bbDeltaR.Fill(deltaR_vec_to_vec(higg.daughter(0),
+                                         higg.daughter(1)))
 
-fs.makeTH1D(
-    'hDecayChans',
-    ';H Decay Channel;',
-    len(hDecayChans) + 1, 0, len(hDecayChans) + 1
-)
-for k in sorted(hDecayChans.keys()):
-    fs.hDecayChans.Fill(str(k), hDecayChans[k])
+fs_fw.makeTH1D_from_dict(
+    'fwJetPdgId', ';forward parton pdgId;', fwJetPdgId)
+fs_h.makeTH1D_from_dict(
+    'hDecayChans', ';H Decay Channel;', hDecayChans)
+fs_tp.makeTH1D_from_dict(
+    'tPrimeDecayChans', ';tPrime Decay Channel;', tPrimeDecayChans)
+fs_tp.makeTH1D_from_dict(
+    'tPrimeMomPdgId', ';tPrime Mother PdgId;', tPrimeMomPdgId)
+
 
 print 'Done. Num events:'
